@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>AI 단톡 RPG 싸움 이벤트</title>
+<title>AI 단톡 RPG</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 body{background:#b2c7da;font-family:Arial;margin:0;padding:0;}
@@ -56,7 +56,7 @@ button{width:80px;border-radius:5px;border:none;background:#2f4f6f;color:white;c
 </div>
 
 <script>
-const serverUrl="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"; // 배포한 서버 URL
+const serverUrl="https://YOUR_SERVER_URL/api/chat"; // 여기에 Node.js 서버 주소
 
 let myName="나", myAvatar="";
 let characters=[
@@ -112,39 +112,24 @@ function applySettings(){
   showParticipants();
 }
 
-// AI GPT 호출 + 감정/싸움 이벤트
 async function aiRespond(c, userText){
   try{
-    // GPT 요청
-    const messages=[
-      {role:"user", content:userText}
-    ];
-
-    const res=await fetch(`${serverUrl}/api/chat`,{
+    const res=await fetch(serverUrl,{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({messages, character:c})
+      body:JSON.stringify({messages:[{role:"user", content:userText}], character:c})
     });
     const data=await res.json();
 
-    // 싸움 이벤트 예: 질투나 분노가 50 이상이면 한 줄 추가
-    if(c.mood.jealousy>50 || c.mood.anger>50){
-      data.reply += " ⚡싸움발발!⚡";
-      // 감정 일부 감소/증가
-      c.mood.anger += 5;
-      c.mood.jealousy += 5;
-    }
+    if(c.mood.jealousy>50 || c.mood.anger>50){ data.reply += " ⚡싸움발발!⚡"; c.mood.anger+=5; c.mood.jealousy+=5; }
 
     addMessage(c.name,data.reply,false,c.avatar);
 
-    // 감정 랜덤 변화
     c.mood.love += Math.floor(Math.random()*3)-1;
     c.mood.jealousy += Math.floor(Math.random()*3)-1;
     c.mood.anger += Math.floor(Math.random()*2)-1;
 
-  } catch(e){
-    addMessage(c.name,"오류 발생",false,c.avatar);
-  }
+  }catch(e){ addMessage(c.name,"오류 발생",false,c.avatar); }
 }
 
 async function send(){
@@ -154,7 +139,6 @@ async function send(){
   addMessage(myName,text,true,myAvatar); 
   input.value="";
   
-  // 모든 캐릭터 순서대로 답변
   for(const c of characters){await aiRespond(c,text);}
 }
 
