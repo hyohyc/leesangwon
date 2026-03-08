@@ -5,23 +5,23 @@
 <title>AI 단톡 RPG</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-body{background:#b2c7da;font-family:Arial;margin:0;padding:0;}
-#roomHeader{background:#2f4f6f;color:white;padding:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;}
+body{margin:0;padding:0;font-family:Arial;background:#e5ddd5;}
+#roomHeader{background:#075e54;color:white;padding:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;}
 #roomHeader h2{margin:0;font-size:18px;}
 #participants{display:flex;align-items:center;overflow-x:auto;}
 .participant{margin-left:5px;text-align:center;}
 .participant img{width:40px;height:40px;border-radius:50%;}
-#chat{width:95%;max-width:400px;height:400px;margin:10px auto;overflow-y:scroll;padding:10px;background:#cdd9e5;scroll-behavior:smooth;}
+#chat{width:95%;max-width:400px;height:400px;margin:10px auto;overflow-y:scroll;padding:10px;background:url('https://i.imgur.com/WK4wJtp.png');background-size:cover;scroll-behavior:smooth;border-radius:10px;}
 .message{margin:10px 0;display:flex;align-items:flex-end;transition: all 0.3s;}
 .avatar{width:40px;height:40px;border-radius:50%;margin-right:5px;}
 .me .avatar{margin-left:5px;margin-right:0;}
 .bubble{padding:10px;border-radius:10px;max-width:70%;white-space:pre-wrap;box-shadow:1px 1px 3px rgba(0,0,0,0.2);}
-.me{background:#FEE500;margin-left:auto;display:flex;align-items:flex-end;}
-.ai{background:#ffffff;margin-right:auto;display:flex;align-items:flex-end;}
+.me{background:#dcf8c6;margin-left:auto;display:flex;align-items:flex-end;}
+.ai{background:white;margin-right:auto;display:flex;align-items:flex-end;}
 .name{font-size:12px;margin-bottom:2px;}
 #inputArea{width:95%;max-width:400px;margin:10px auto;display:flex;flex-wrap:wrap;}
-#input{flex:1;padding:10px;border-radius:5px;border:1px solid #aaa;margin-bottom:5px;}
-button{width:80px;border-radius:5px;border:none;background:#2f4f6f;color:white;cursor:pointer;margin-left:5px;}
+#input{flex:1;padding:10px;border-radius:20px;border:1px solid #aaa;margin-bottom:5px;}
+button{width:80px;border-radius:20px;border:none;background:#075e54;color:white;cursor:pointer;margin-left:5px;}
 #settings{width:95%;max-width:400px;margin:10px auto;padding:10px;background:#e6e6e6;border-radius:10px;}
 #settings input{margin:2px 0;padding:4px;width:100%;}
 </style>
@@ -56,7 +56,7 @@ button{width:80px;border-radius:5px;border:none;background:#2f4f6f;color:white;c
 </div>
 
 <script>
-const serverUrl="https://YOUR_SERVER_URL/api/chat"; // 여기에 Node.js 서버 주소
+const serverUrl="https://YOUR_SERVER_URL/api/chat"; // 서버 URL 변경
 
 let myName="나", myAvatar="";
 let characters=[
@@ -129,7 +129,7 @@ async function aiRespond(c, userText){
     c.mood.jealousy += Math.floor(Math.random()*3)-1;
     c.mood.anger += Math.floor(Math.random()*2)-1;
 
-  }catch(e){ addMessage(c.name,"오류 발생",false,c.avatar); }
+  }catch(e){}
 }
 
 async function send(){
