@@ -1,1 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Sangwon Talk</title>
 
+<style>
+body{
+    background:#b2c7da;
+    font-family:Arial;
+}
+
+#chat{
+    width:400px;
+    height:600px;
+    background:#b2c7da;
+    margin:auto;
+    overflow-y:scroll;
+    padding:10px;
+}
+
+.message{
+    margin:10px 0;
+}
+
+.name{
+    font-size:12px;
+}
+
+.bubble{
+    background:white;
+    padding:10px;
+    border-radius:10px;
+    display:inline-block;
+    max-width:220px;
+}
+
+.me{
+    background:#FEE500;
+}
+
+#inputArea{
+    width:400px;
+    margin:auto;
+    display:flex;
+}
+
+#input{
+    flex:1;
+    padding:10px;
+}
+
+button{
+    width:80px;
+}
+</style>
+
+</head>
+<body>
+
+<h2 style="text-align:center">Sangwon Talk</h2>
+
+<div id="chat"></div>
+
+<div id="inputArea">
+<input id="input" placeholder="메시지 입력">
+<button onclick="send()">전송</button>
+</div>
+
+<script>
+const API_KEY="여기에_API_KEY"; // ← OpenAI API 키 넣기
+
+// 캐릭터 설정
+const characters=[
+    {
+        name:"이상원",
+        personality:"24살, 남자지만 여자처럼 예쁘고 여우짓·내숭, 토끼·햄스터 닮음, 상냥, 낭만가, F, 질투 아주 조금, 김건우가 자신을 좋아하는 걸 모르는 척"
+    },
+    {
+        name:"이리오",
+        personality:"25살, 집착 심하고 질투 많음, 츤데레, 조금 T, 무뚝뚝, 김건우가 이상원을 좋아하는 걸 알고 견제, 이상원과 8년째 연인"
+    },
+    {
+        name:"김건우",
+        personality:"24살, 무뚝뚝, 질투 많음, T, 이상원을 오래 짝사랑, 이리오에게 질투, 외모가 원숭이 닮았다고 하면 싫어함"
+    }
+];
+
+function addMessage(name,text){
+    const chat=document.getElementById("chat");
+    chat.innerHTML+=`
+    <div class="message">
+        <div class="name">${name}</div>
+        <div class="bubble">${text}</div>
+    </div>`;
+    chat.scrollTop=chat.scrollHeight;
+}
+
+async function send(){
+    const input=document.getElementById("input");
+    const text=input.value;
+    if(!text) return;
+    addMessage("나",text);
+    input.value="";
+
+    for(const c of characters){
+        const response=await fetch("https://api.openai.com/v1/chat/completions",{
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json",
+                "Authorization":"Bearer "+API_KEY
+            },
+            body:JSON.stringify({
+                model:"gpt-4o-mini",
+                messages:[
+                    {
+                        role:"system",
+                        content:`너의 이름은 ${c.name}.
+성격과 특징: ${c.personality}.
+지금 단체 채팅방에 3명이 있다.
+짧게, 자연스럽게 대답해. 캐릭터 설정과 관계를 지키면서 말해.`
+                    },
+                    {role:"user", content:text}
+                ]
+            })
+        });
+
+        const data=await response.json();
+        const ai=data.choices[0].message.content;
+        addMessage(c.name,ai);
+    }
+}
+</script>
+
+</body>
+</html>
