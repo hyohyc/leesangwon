@@ -1,47 +1,164 @@
-// server.js
-import express from 'express';
-import fetch from 'node-fetch';
-import cors from 'cors';
-import dotenv from 'dotenv';
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>AI 단톡 RPG 싸움 이벤트</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{background:#b2c7da;font-family:Arial;margin:0;padding:0;}
+#roomHeader{background:#2f4f6f;color:white;padding:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;}
+#roomHeader h2{margin:0;font-size:18px;}
+#participants{display:flex;align-items:center;overflow-x:auto;}
+.participant{margin-left:5px;text-align:center;}
+.participant img{width:40px;height:40px;border-radius:50%;}
+#chat{width:95%;max-width:400px;height:400px;margin:10px auto;overflow-y:scroll;padding:10px;background:#cdd9e5;scroll-behavior:smooth;}
+.message{margin:10px 0;display:flex;align-items:flex-end;transition: all 0.3s;}
+.avatar{width:40px;height:40px;border-radius:50%;margin-right:5px;}
+.me .avatar{margin-left:5px;margin-right:0;}
+.bubble{padding:10px;border-radius:10px;max-width:70%;white-space:pre-wrap;box-shadow:1px 1px 3px rgba(0,0,0,0.2);}
+.me{background:#FEE500;margin-left:auto;display:flex;align-items:flex-end;}
+.ai{background:#ffffff;margin-right:auto;display:flex;align-items:flex-end;}
+.name{font-size:12px;margin-bottom:2px;}
+#inputArea{width:95%;max-width:400px;margin:10px auto;display:flex;flex-wrap:wrap;}
+#input{flex:1;padding:10px;border-radius:5px;border:1px solid #aaa;margin-bottom:5px;}
+button{width:80px;border-radius:5px;border:none;background:#2f4f6f;color:white;cursor:pointer;margin-left:5px;}
+#settings{width:95%;max-width:400px;margin:10px auto;padding:10px;background:#e6e6e6;border-radius:10px;}
+#settings input{margin:2px 0;padding:4px;width:100%;}
+</style>
+</head>
+<body>
 
-dotenv.config();
-const app = express();
-app.use(cors());
-app.use(express.json());
+<div id="roomHeader">
+  <h2 id="roomName">AI 단톡 RPG</h2>
+  <div id="participants"></div>
+</div>
 
-const PORT = process.env.PORT || 3000;
+<div id="settings">
+<h3>설정</h3>
+<label>채팅방 이름:</label><input id="inputRoomName"><br>
+<label>내 닉네임:</label><input id="inputMyName"><br>
+<label>내 프사 선택:</label><input type="file" id="inputMyAvatarFile" accept="image/*"><br>
 
-app.post('/api/chat', async (req, res) => {
-  try {
-    const { messages, character } = req.body;
+<h4>AI 캐릭터 설정</h4>
+<label>AI 1 닉네임:</label><input id="inputChar1Name"><br>
+<label>AI 1 프사 선택:</label><input type="file" id="inputChar1AvatarFile" accept="image/*"><br>
+<label>AI 2 닉네임:</label><input id="inputChar2Name"><br>
+<label>AI 2 프사 선택:</label><input type="file" id="inputChar2AvatarFile" accept="image/*"><br>
+<label>AI 3 닉네임:</label><input id="inputChar3Name"><br>
+<label>AI 3 프사 선택:</label><input type="file" id="inputChar3AvatarFile" accept="image/*"><br>
+<button onclick="applySettings()">적용</button>
+</div>
 
-    // 캐릭터 정보
-    const systemMsg = {
-      role: "system",
-      content: `너는 ${character.name}, 나이:${character.age || "알 수 없음"}, 성격:${character.personality}, 연인:${character.lover || "없음"}, 짝사랑:${character.crush || "없음"}, 현재 감정:${JSON.stringify(character.mood)}. 단톡방에는 ${character.name} 외에 다른 참가자들이 있음. 이전 대화 기억. 캐릭터 성격대로 자연스럽게 답변.`
-    };
+<div id="chat"></div>
+<div id="inputArea">
+<input id="input" placeholder="메시지 입력">
+<button onclick="send()">전송</button>
+</div>
 
-    const payload = {
-      model: "gpt-4o-mini",
-      messages: [systemMsg, ...messages],
-      temperature: 0.8
-    };
+<script>
+const serverUrl="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"; // 배포한 서버 URL
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify(payload)
-    });
+let myName="나", myAvatar="";
+let characters=[
+  {name:"이상원", age:24, personality:"상냥·낭만적", lover:"이리오", crush:null, mood:{love:50, jealousy:10, anger:0}, avatar:""},
+  {name:"이리오", age:25, personality:"츤데레·질투", lover:"이상원", crush:null, mood:{love:60, jealousy:30, anger:0}, avatar:""},
+  {name:"김건우", age:24, personality:"무뚝뚝·질투", lover:null, crush:"이상원", mood:{love:50, jealousy:40, anger:0}, avatar:""}
+];
 
-    const data = await response.json();
-    res.json({ reply: data.choices?.[0]?.message?.content || "응답 없음" });
-  } catch (err) {
-    console.error(err);
-    res.json({ reply: "오류 발생" });
+function showParticipants(){
+  const participants=document.getElementById("participants");
+  participants.innerHTML="";
+  const all=[{name:myName, avatar:myAvatar}, ...characters];
+  all.forEach(p=>{
+    const div=document.createElement("div");
+    div.className="participant";
+    div.innerHTML=`<img src="${p.avatar||'https://via.placeholder.com/40?text=?'}"><div style="font-size:10px;">${p.name}</div>`;
+    participants.appendChild(div);
+  });
+}
+
+function addMessage(name,text,isMe=false,avatar=null){
+  const chat=document.getElementById("chat");
+  const div=document.createElement("div");
+  div.className="message "+(isMe?"me":"ai");
+  const img=document.createElement("img"); img.src=avatar||'https://via.placeholder.com/40?text=?'; img.className="avatar";
+  const bubble=document.createElement("div"); bubble.className="bubble";
+  bubble.innerHTML=`<div class="name">${name}</div>${text}`;
+  if(isMe){div.appendChild(bubble); div.appendChild(img);} else {div.appendChild(img); div.appendChild(bubble);}
+  chat.appendChild(div); chat.scrollTop=chat.scrollHeight;
+}
+
+function applySettings(){
+  const roomName=document.getElementById("inputRoomName").value.trim(); if(roomName) document.getElementById("roomName").innerText=roomName;
+  const myN=document.getElementById("inputMyName").value.trim(); if(myN) myName=myN;
+
+  const myFile=document.getElementById("inputMyAvatarFile").files[0];
+  if(myFile){
+    const reader=new FileReader();
+    reader.onload=e=>{ myAvatar=e.target.result; showParticipants(); };
+    reader.readAsDataURL(myFile);
   }
-});
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  [["inputChar1Name","inputChar1AvatarFile"],["inputChar2Name","inputChar2AvatarFile"],["inputChar3Name","inputChar3AvatarFile"]].forEach((ids,i)=>{
+    const n=document.getElementById(ids[0]).value.trim(); if(n) characters[i].name=n;
+    const file=document.getElementById(ids[1]).files[0];
+    if(file){
+      const reader=new FileReader();
+      reader.onload=e=>{ characters[i].avatar=e.target.result; showParticipants(); };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  showParticipants();
+}
+
+// AI GPT 호출 + 감정/싸움 이벤트
+async function aiRespond(c, userText){
+  try{
+    // GPT 요청
+    const messages=[
+      {role:"user", content:userText}
+    ];
+
+    const res=await fetch(`${serverUrl}/api/chat`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({messages, character:c})
+    });
+    const data=await res.json();
+
+    // 싸움 이벤트 예: 질투나 분노가 50 이상이면 한 줄 추가
+    if(c.mood.jealousy>50 || c.mood.anger>50){
+      data.reply += " ⚡싸움발발!⚡";
+      // 감정 일부 감소/증가
+      c.mood.anger += 5;
+      c.mood.jealousy += 5;
+    }
+
+    addMessage(c.name,data.reply,false,c.avatar);
+
+    // 감정 랜덤 변화
+    c.mood.love += Math.floor(Math.random()*3)-1;
+    c.mood.jealousy += Math.floor(Math.random()*3)-1;
+    c.mood.anger += Math.floor(Math.random()*2)-1;
+
+  } catch(e){
+    addMessage(c.name,"오류 발생",false,c.avatar);
+  }
+}
+
+async function send(){
+  const input=document.getElementById("input"); 
+  const text=input.value.trim(); 
+  if(!text) return;
+  addMessage(myName,text,true,myAvatar); 
+  input.value="";
+  
+  // 모든 캐릭터 순서대로 답변
+  for(const c of characters){await aiRespond(c,text);}
+}
+
+showParticipants();
+</script>
+</body>
+</html>
